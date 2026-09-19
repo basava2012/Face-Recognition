@@ -50,6 +50,8 @@ pipeline {
                 sh """
                     docker stop ${APP_NAME}_running || true
                     docker rm ${APP_NAME}_running || true
+                    docker stop attendance_container || true
+                    docker rm attendance_container || true
                     docker run -d \\
                         --name ${APP_NAME}_running \\
                         -p ${PORT}:5000 \\
