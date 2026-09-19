@@ -35,9 +35,9 @@ pipeline {
                 sh """
                     docker stop test_health_check || true
                     docker rm test_health_check || true
-                    docker run -d --name test_health_check -p 5001:5000 ${APP_NAME}:${IMAGE_TAG}
-                    sleep 5
-                    curl -f http://localhost:5001/health || exit 1
+                    docker run -d --name test_health_check ${APP_NAME}:${IMAGE_TAG}
+                    sleep 3
+                    docker exec test_health_check python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" || exit 1
                     docker stop test_health_check
                     docker rm test_health_check
                 """
