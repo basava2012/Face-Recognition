@@ -3,6 +3,11 @@ import cv2
 import os
 from datetime import datetime, timedelta
 import json
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 from database import (
     init_db, add_student, get_all_students, get_student_by_id, update_student,
     mark_attendance_auto, mark_attendance_manual, get_attendance_record,
@@ -415,9 +420,10 @@ def get_attendance_details(student_id, session_date):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@app.route('/health', methods=['GET'])
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint for Docker & AWS monitoring"""
     return jsonify({'status': 'healthy'})
 
 @app.route('/api/whoami', methods=['GET'])
