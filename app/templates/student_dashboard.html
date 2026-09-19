@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container" data-student-id='{{ session.get("student_id")|tojson }}'>
+        <header>
+            <h1>Student Dashboard</h1>
+        </header>
+        <div class="card">
+            <h3>Your Profile</h3>
+            <div id="studentProfile">Loading...</div>
+        </div>
+        <div class="card">
+            <h3>Registered Faces</h3>
+            <div id="faceGallery">Loading...</div>
+        </div>
+        <div class="card">
+            <h3>Subject-wise Attendance</h3>
+            <div class="form-group">
+                <label>Select Subject:</label>
+                <select id="subjectSelect"><option value="">All Subjects</option></select>
+            </div>
+            <div id="attendanceTable">Loading...</div>
+        </div>
+         <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+     </div>
+
+     <script>
+         async function loadProfile(){
+            const res = await fetch('/api/whoami');
+            const who = await res.json();
+            if(!who.logged_in || who.role!=='student'){
+                window.location.href = '/login';
+                return;
+            }
+            const idRaw = document.querySelector('.container').getAttribute('data-student-id');
+            const id = idRaw ? JSON.parse(idRaw) : null;
+            const resp = await fetch(`/api/students/${id}`);
+            const data = await resp.json();
+            if(data.success){
+                const s = data.student;
+                document.getElementById('studentProfile').innerHTML = `
+                    <p><strong>Roll:</strong> ${s.roll_number}</p>
+                    <p><strong>Name:</strong> ${s.name}</p>
+                    <p><strong>Email:</strong> ${s.email || '-'} </p>
+                `;
+            }
+            const faces = await (await fetch(`/api/students/${id}/faces`)).json();
+            if(faces.images && faces.images.length){
+                 document.getElementById('faceGallery').innerHTML = faces.images.map(i=>`<img src="${i}" style="max-width:120px;margin:6px;"/>`).join('');
+             } else {
+                 document.getElementById('faceGallery').textContent = 'No faces registered';
+             }
+
+            // load subjects and attendance
+            const subjResp = await fetch(`/api/students/${id}/subjects`);
+            const subjData = await subjResp.json();
+            const sel = document.getElementById('subjectSelect');
+            sel.innerHTML = '<option value="">All Subjects</option>' + (subjData.subjects||[]).map(s=>`<option value="${s}">${s}</option>`).join('');
+            sel.addEventListener('change', ()=> loadAttendance(id, sel.value));
+            loadAttendance(id, '');
+         }
+
+        async function loadAttendance(studentId, subject){
+            const container = document.getElementById('attendanceTable');
+            container.innerHTML = 'Loading...';
+            const url = `/api/students/${studentId}/attendance` + (subject?`?subject=${encodeURIComponent(subject)}`:'')
+            const res = await fetch(url);
+            const data = await res.json();
+            if(!data.success){ container.innerHTML = 'Error loading attendance'; return; }
+            if(!(data.records||[]).length){ container.innerHTML = '<p>No attendance records</p>'; return; }
+            container.innerHTML = `<table class="report-table"><thead><tr><th>Date</th><th>Subject</th><th>Status</th><th>Check-in</th><th>Duration</th></tr></thead><tbody>` +
+                data.records.map(r=>`<tr><td>${r.session_date}</td><td>${r.subject||subject||'General'}</td><td>${r.status}</td><td>${r.check_in||'-'}</td><td>${r.duration_minutes||'-'}</td></tr>`).join('') +
+                `</tbody></table>`;
+        }
+         window.onload = loadProfile;
+     </script>
+ </body>
+ </html>

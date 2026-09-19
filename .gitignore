@@ -1,0 +1,25 @@
+.venv311/
+venv/
+.venv/
+
+__pycache__/
+*.pyc
+*.pyo
+
+build/
+dist/
+*.egg-info/
+
+.env
+
+.vscode/
+.idea/
+
+.DS_Store
+Thumbs.db
+
+# Application data
+app/data/*.db
+
+# Student face images / biometric data
+app/student_faces/

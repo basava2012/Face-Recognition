@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Attendance System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👤 Face Recognition Attendance System</h1>
+            <p>Automated student attendance tracking with facial recognition</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="home">Home</button>
+            <button class="tab-btn" data-tab="students">Students</button>
+            <button class="tab-btn" data-tab="attendance">Attendance</button>
+            <button class="tab-btn" data-tab="report">Report</button>
+            <button class="tab-btn" onclick="window.location='/logout'">Logout</button>
+        </nav>
+
+        <!-- Home Tab -->
+        <section id="home" class="tab-content active">
+            <div class="card">
+                <h2>Welcome to Face Recognition Attendance System</h2>
+                <p>This system automatically tracks student attendance using facial recognition. Students are marked present when detected for 45 minutes, or manually by the teacher.</p>
+                
+                <div class="features">
+                    <div class="feature" data-target="attendance" onclick="openTab('attendance')">
+                        <h3>🔍 Automatic Detection</h3>
+                        <p>Faces are automatically recognized and attendance is recorded</p>
+                    </div>
+                    <div class="feature" data-target="attendance" onclick="openTab('attendance')">
+                        <h3>⏱️ 45-Minute Rule</h3>
+                        <p>Students are marked present after 45 minutes of detection</p>
+                    </div>
+                    <div class="feature" data-target="students" onclick="openTab('students')">
+                        <h3>✋ Manual Override</h3>
+                        <p>Teachers can manually mark attendance anytime</p>
+                    </div>
+                    <div class="feature" data-target="report" onclick="openTab('report')">
+                        <h3>📊 Reports</h3>
+                        <p>View detailed attendance reports by date</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Students Tab -->
+        <section id="students" class="tab-content">
+            <div class="card">
+                <h2>Student Management</h2>
+                
+                <div class="form-section">
+                    <h3>Register New Student</h3>
+                    <form id="addStudentForm">
+                        <div class="form-group">
+                            <label>Roll Number:</label>
+                            <input type="text" id="rollNumber" placeholder="e.g., CS001" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Name:</label>
+                            <input type="text" id="studentName" placeholder="Full name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email:</label>
+                            <input type="email" id="studentEmail" placeholder="student@example.com">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Student</button>
+                    </form>
+                    <div id="addStudentMessage" class="message"></div>
+                </div>
+
+                <hr>
+
+                <div class="form-section">
+                    <h3>Student Face Registration</h3>
+                    <div class="form-group">
+                        <label>Select Student:</label>
+                        <select id="studentSelect">
+                            <option value="">-- Choose a student --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Upload Face Image:</label>
+                        <input type="file" id="faceUpload" accept="image/*">
+                        <small>Upload a clear frontal face image</small>
+                    </div>
+
+                    <div class="form-group">
+                        <button onclick="uploadFace()" class="btn btn-primary">Register Face (Upload)</button>
+                        <button onclick="startRegistrationCamera()" class="btn">Use Camera</button>
+                        <button id="captureFaceBtn" onclick="captureStudentFace()" class="btn btn-primary" style="display:none;">Capture & Register</button>
+                    </div>
+                    <div id="uploadMessage" class="message"></div>
+
+                    <div id="registrationCamera" style="display:none; margin-top:10px;">
+                        <video id="registrationVideo" autoplay playsinline style="max-width:100%; border:1px solid #ccc;"></video>
+                        <canvas id="registrationCanvas" style="display:none;"></canvas>
+                        <button onclick="stopRegistrationCamera()" class="btn btn-danger">Stop Camera</button>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h3>Registered Students</h3>
+                <div id="studentsList" class="students-list">
+                    <p>Loading students...</p>
+                </div>
+
+                <div id="studentDetails" style="display:none; margin-top:12px;">
+                    <h3>Student Details</h3>
+                    <div id="studentDetailContent"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Attendance Tab -->
+        <section id="attendance" class="tab-content">
+            <div class="card">
+                <h2>Live Attendance</h2>
+                
+                <div class="attendance-controls">
+                    <div class="form-group">
+                        <label>Session Date:</label>
+                        <input type="date" id="sessionDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Duration (minutes):</label>
+                        <input type="number" id="sessionDuration" value="45" min="1" style="width:100px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Subject:</label>
+                        <input type="text" id="sessionSubject" placeholder="e.g., Math" style="width:200px;">
+                    </div>
+                    <button onclick="startSession()" class="btn btn-primary">Start Session</button>
+                    <button onclick="stopSession()" class="btn btn-danger">Stop Session</button>
+                </div>
+
+                <div id="sessionStatus" class="message" style="display:none;"></div>
+                <div id="sessionTimer" style="font-weight:700; margin:8px 0; display:none;">Timer: <span id="timerDisplay">00:00:00</span></div>
+
+                <div class="video-container">
+                    <div class="camera-placeholder">
+                        <p>📹 Camera Feed</p>
+                        <video id="attendanceVideo" autoplay playsinline style="width:100%; display:none; border:1px solid #ddd;"></video>
+                        <canvas id="videoCanvas" style="width: 100%; display: none;"></canvas>
+                        <div id="cameraStatus">Ready to start session</div>
+                    </div>
+                </div>
+
+                <div class="recognized-box">
+                    <h3>Recognized Students (Current Session)</h3>
+                    <div id="recognizedList" class="students-detected">
+                        <p>No students detected yet</p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h3>Manual Attendance</h3>
+                <div class="manual-attendance">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label style="font-weight: 600;">Select Student(s):</label>
+                        <select id="manualStudentSelect" multiple size="5" style="width: 100%; max-width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; background: #fff;">
+                        </select>
+                        <small style="color: #666; display: block; margin-top: 4px;">💡 Hold Ctrl (Cmd on Mac) to select multiple students at once.</small>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Status:</label>
+                        <select id="attendanceStatus" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                            <option value="PRESENT">Present</option>
+                            <option value="ABSENT">Absent</option>
+                            <option value="LATE">Late</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button onclick="markManualAttendance()" class="btn btn-success" style="width: 100%; padding: 10px 16px; font-weight: 600;">Mark Attendance</button>
+                    </div>
+                    <div id="manualMessage" class="message" style="grid-column: 1 / -1;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Report Tab -->
+        <section id="report" class="tab-content">
+            <div class="card">
+                <h2>Attendance Report</h2>
+                
+                <div class="report-controls">
+                    <div class="form-group">
+                        <label>Select Date:</label>
+                        <input type="date" id="reportDate">
+                    </div>
+                    <button onclick="generateReport()" class="btn btn-primary">Generate Report</button>
+                </div>
+
+                <div id="reportContainer" style="display:none;">
+                    <h3 id="reportTitle"></h3>
+                    <table id="reportTable" class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Roll Number</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Check-in Time</th>
+                                <th>Duration (minutes)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportBody">
+                        </tbody>
+                    </table>
+                    <div class="report-stats">
+                        <p>Total Students: <span id="totalStudents">0</span></p>
+                        <p>Present: <span id="presentCount">0</span></p>
+                        <p>Absent: <span id="absentCount">0</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
