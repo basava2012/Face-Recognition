@@ -15,37 +15,17 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                echo 'Setting up Python virtual environment & installing dependencies...'
-                sh '''
-                    python3 -m venv venv || python -m venv venv
-                    . venv/bin/activate || . venv/Scripts/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
-                '''
-            }
-        }
-
-        stage('Run Automated Tests') {
-            steps {
-                echo 'Running unit & integration test suite with pytest...'
-                sh '''
-                    . venv/bin/activate || . venv/Scripts/activate
-                    pytest --junitxml=test-results.xml
-                '''
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: 'test-results.xml'
-                }
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker container image...'
                 sh "docker build -t ${APP_NAME}:${IMAGE_TAG} -t ${APP_NAME}:latest ."
+            }
+        }
+
+        stage('Run Automated Tests inside Container') {
+            steps {
+                echo 'Running unit & integration tests inside container...'
+                sh "docker run --rm ${APP_NAME}:${IMAGE_TAG} python -m pytest"
             }
         }
 
@@ -64,10 +44,9 @@ pipeline {
             }
         }
 
-        stage('Deploy to Production') {
+        stage('Deploy Production Container') {
             steps {
                 echo 'Deploying containerized application...'
-                // For local deployment or EC2 deployment script:
                 sh """
                     docker stop ${APP_NAME}_running || true
                     docker rm ${APP_NAME}_running || true
